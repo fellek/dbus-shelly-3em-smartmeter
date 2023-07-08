@@ -157,7 +157,6 @@ class DbusShelly3emService:
   def _update(self):
     try:
       #get data from Shelly 3em
-
       meter_data = self._getShellyData()
       config = self._getConfig()
 
@@ -167,34 +166,30 @@ class DbusShelly3emService:
         remapL1 = 1
 
       if remapL1 > 1:
-        old_l1 = meter_data['emeters'][0]
-        meter_data['emeters'][0] = meter_data['emeters'][remapL1-1]
-        meter_data['emeters'][remapL1-1] = old_l1
+        old_l1 = meter_data['meters'][0]
+        meter_data['meters'][0] = meter_data['meters'][remapL1-1]
+        meter_data['meters'][remapL1-1] = old_l1
 
       #send data to DBus
-      self._dbusservice['/Ac/Power'] = meter_data['total_power']
-      self._dbusservice['/Ac/L1/Voltage'] = meter_data['emeters'][0]['voltage']
-      self._dbusservice['/Ac/L2/Voltage'] = meter_data['emeters'][1]['voltage']
-      self._dbusservice['/Ac/L3/Voltage'] = meter_data['emeters'][2]['voltage']
-      self._dbusservice['/Ac/L1/Current'] = meter_data['emeters'][0]['current']
-      self._dbusservice['/Ac/L2/Current'] = meter_data['emeters'][1]['current']
-      self._dbusservice['/Ac/L3/Current'] = meter_data['emeters'][2]['current']
-      self._dbusservice['/Ac/Current'] = meter_data['emeters'][0]['current']+meter_data['emeters'][1]['current']+meter_data['emeters'][2]['current']
-      self._dbusservice['/Ac/L1/Power'] = meter_data['emeters'][0]['power']
-      self._dbusservice['/Ac/L2/Power'] = meter_data['emeters'][1]['power']
-      self._dbusservice['/Ac/L3/Power'] = meter_data['emeters'][2]['power']
-      self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['emeters'][0]['total']/1000)
-      self._dbusservice['/Ac/L2/Energy/Forward'] = (meter_data['emeters'][1]['total']/1000)
-      self._dbusservice['/Ac/L3/Energy/Forward'] = (meter_data['emeters'][2]['total']/1000)
-      self._dbusservice['/Ac/L1/Energy/Reverse'] = (meter_data['emeters'][0]['total_returned']/1000)
-      self._dbusservice['/Ac/L2/Energy/Reverse'] = (meter_data['emeters'][1]['total_returned']/1000)
-      self._dbusservice['/Ac/L3/Energy/Reverse'] = (meter_data['emeters'][2]['total_returned']/1000)
+      self._dbusservice['/Ac/Power'] = meter_data['meters'][0]['power']
+      self._dbusservice['/Ac/L1/Voltage'] = 230
+      #self._dbusservice['/Ac/L2/Voltage'] = 0
+      #self._dbusservice['/Ac/L3/Voltage'] = 0
+      self._dbusservice['/Ac/L1/Power'] = meter_data['meters'][0]['power']
+      self._dbusservice['/Ac/L2/Power'] = 0
+      self._dbusservice['/Ac/L3/Power'] = 0
+      self._dbusservice['/Ac/L1/Current'] = self._dbusservice['/Ac/L1/Power']/self._dbusservice['/Ac/L1/Voltage']
+      self._dbusservice['/Ac/L2/Current'] = 0
+      self._dbusservice['/Ac/L2/Current'] = 0
+      self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['meters'][0]['total']/1000)
+      self._dbusservice['/Ac/L2/Energy/Forward'] = 0
+      self._dbusservice['/Ac/L3/Energy/Forward'] = 0
+      self._dbusservice['/Ac/L1/Energy/Reverse'] = 0
+      self._dbusservice['/Ac/L2/Energy/Reverse'] = 0
+      self._dbusservice['/Ac/L3/Energy/Reverse'] = 0
 
-      # Old version
-      #self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/L1/Energy/Forward'] + self._dbusservice['/Ac/L2/Energy/Forward'] + self._dbusservice['/Ac/L3/Energy/Forward']
-      #self._dbusservice['/Ac/Energy/Reverse'] = self._dbusservice['/Ac/L1/Energy/Reverse'] + self._dbusservice['/Ac/L2/Energy/Reverse'] + self._dbusservice['/Ac/L3/Energy/Reverse']
-
-      # New Version - from xris99
+      self._dbusservice['/Ac/Voltage'] = self._dbusservice['/Ac/L1/Voltage']
+      self._dbusservice['/Ac/Current'] = self._dbusservice['/Ac/L1/Current']
       #Calc = 60min * 60 sec / 0.500 (refresh interval of 500ms) * 1000
       if (self._dbusservice['/Ac/Power'] > 0):
            self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/Energy/Forward'] + (self._dbusservice['/Ac/Power']/(60*60/0.5*1000))
@@ -216,8 +211,8 @@ class DbusShelly3emService:
     except (ValueError, requests.exceptions.ConnectionError, requests.exceptions.Timeout, ConnectionError) as e:
        logging.critical('Error getting data from Shelly - check network or Shelly status. Setting power values to 0. Details: %s', e, exc_info=e)
        self._dbusservice['/Ac/L1/Power'] = 0
-       self._dbusservice['/Ac/L2/Power'] = 0
-       self._dbusservice['/Ac/L3/Power'] = 0
+       #self._dbusservice['/Ac/L2/Power'] = 0
+       #self._dbusservice['/Ac/L3/Power'] = 0
        self._dbusservice['/Ac/Power'] = 0
        self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
     except Exception as e:
@@ -303,6 +298,5 @@ def main():
     logging.critical('Error in main type %s', str(e))
   except Exception as e:
     logging.critical('Error at %s', 'main', exc_info=e)
-
 if __name__ == "__main__":
   main()
